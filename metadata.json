@@ -1,0 +1,6 @@
+{
+  "name": "Falcon Sport Complex",
+  "description": "Premium indoor cricket nets venue featuring real-time today's bookings, facilities overview, and auto-updating Dropbox spreadsheet sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
