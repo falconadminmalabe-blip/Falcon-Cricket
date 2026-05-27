@@ -5,7 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-   base: '/Falcon-Cricket/', // 👈 Updated with your exact repository name
+    base: process.env.NODE_ENV === 'production' ? './' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
