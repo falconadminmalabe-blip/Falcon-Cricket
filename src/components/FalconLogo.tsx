@@ -1,4 +1,5 @@
 import React from "react";
+import logoImg from "../assets/images/falcon_logo_1779670920742.png";
 
 interface FalconLogoProps {
   className?: string;
@@ -10,7 +11,7 @@ export default function FalconLogo({ className = "w-[60px] h-[60px]", showText =
   return (
     <div className="flex items-center gap-3" id="main-logo-container">
       <img
-        src="/src/assets/images/falcon_logo_1779670920742.png"
+        src={logoImg}
         alt="Falcon Cricket Academy Logo"
         className="w-[60px] h-[60px] shrink-0 object-contain rounded-lg filter drop-shadow-xs transition-transform duration-300 hover:scale-105 hover:rotate-2"
         referrerPolicy="no-referrer"

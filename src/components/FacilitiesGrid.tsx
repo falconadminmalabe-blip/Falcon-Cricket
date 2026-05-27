@@ -2,13 +2,19 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Facility } from "../types";
 
+// Import all images with relative ESM imports
+import netWicketCloseup from "../assets/images/net_wicket_closeup_1779640078823.jpeg";
+import netWideLanes from "../assets/images/net_wide_lanes_1779640099204.jpeg";
+import netPracticeSession from "../assets/images/net_practice_session_1779640118902.jpeg";
+import netBowlingMachine from "../assets/images/net_bowling_machine_1779640057852.jpeg";
+
 // Let's declare our exact generated images matching our assets and specify their features
 const FACILITIES_DATA: Facility[] = [
   {
     id: 1,
     title: "Net",
     description: "A dedicated professional batting lane equipped with high-density shock-absorbent astro-turf, standard stumps, and side net containment for concentrated batting drills and target practice.",
-    image: "/src/assets/images/net_wicket_closeup_1779640078823.jpeg",
+    image: netWicketCloseup,
     features: {
       stumps: true,
       runUp: false,
@@ -21,7 +27,7 @@ const FACILITIES_DATA: Facility[] = [
     id: 2,
     title: "Nets",
     description: "Our spacious multi-lane net complex featuring full-length run-ups and clear ball-tracking capability, structured with reliable mesh dividers to house multiple practice sessions simultaneously.",
-    image: "/src/assets/images/net_wide_lanes_1779640099204.jpeg",
+    image: netWideLanes,
     features: {
       stumps: true,
       runUp: true,
@@ -34,7 +40,7 @@ const FACILITIES_DATA: Facility[] = [
     id: 3,
     title: "Training area",
     description: "An expansive physical training and skills development corridor designed with open layouts, adjustable boundaries, and markers for intensive footwork, agility, and group coaching drills.",
-    image: "/src/assets/images/net_practice_session_1779640118902.jpeg",
+    image: netPracticeSession,
     features: {
       stumps: false,
       runUp: true,
@@ -47,7 +53,7 @@ const FACILITIES_DATA: Facility[] = [
     id: 4,
     title: "Bowling Machine",
     description: "A precision bowling machine station offering reliable, consistent deliveries across various line, length, and speed settings to systematically sharpen your reflexes.",
-    image: "/src/assets/images/net_bowling_machine_1779640057852.jpeg",
+    image: netBowlingMachine,
     features: {
       stumps: true,
       runUp: false,

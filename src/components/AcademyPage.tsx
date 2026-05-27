@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Users, Target, Sparkles, Trophy, Award, Zap, Phone, Swords, Globe, BookOpen, Dumbbell } from "lucide-react";
+import logoImg from "../assets/images/falcon_logo_1779670920742.png";
 
 interface AcademyPageProps {
   isDarkMode: boolean;
@@ -45,7 +46,7 @@ export default function AcademyPage({ isDarkMode }: AcademyPageProps) {
         {/* LOGO TRANSPARENCY UNDER THE TEXT AND DESCRIPTION */}
         <div className="absolute inset-x-0 top-[5%] md:top-[4%] -translate-y-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
           <img
-            src="/src/assets/images/falcon_logo_1779670920742.png"
+            src={logoImg}
             alt="Watermark Logo"
             className={`w-[280px] h-[280px] md:w-[420px] md:h-[420px] object-contain select-none transition-opacity duration-300 ${
               isDarkMode ? "opacity-22 md:opacity-28" : "opacity-6 md:opacity-8"
