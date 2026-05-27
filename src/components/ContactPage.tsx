@@ -46,6 +46,26 @@ export default function ContactPage({ isDarkMode, onBack }: ContactPageProps) {
 
   // Load message logs from server / session
   const fetchSentMessages = async () => {
+    const isStaticHosting = window.location.hostname.endsWith(".github.io") || 
+                           window.location.protocol === "file:" ||
+                           window.location.hostname.includes("gitpod") ||
+                           window.location.hostname.includes("codesandbox") ||
+                           window.location.pathname.startsWith("/Falcon-Cricket");
+
+    if (isStaticHosting) {
+      try {
+        const localData = localStorage.getItem("falcon_contact_messages");
+        if (localData) {
+          setSentMessages(JSON.parse(localData));
+        } else {
+          setSentMessages([]);
+        }
+      } catch (e) {
+        console.warn("Could not read local contact messages:", e);
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/contact-messages");
       if (res.ok) {
@@ -79,6 +99,46 @@ export default function ContactPage({ isDarkMode, onBack }: ContactPageProps) {
     setIsSending(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    const isStaticHosting = window.location.hostname.endsWith(".github.io") || 
+                           window.location.protocol === "file:" ||
+                           window.location.hostname.includes("gitpod") ||
+                           window.location.hostname.includes("codesandbox") ||
+                           window.location.pathname.startsWith("/Falcon-Cricket");
+
+    if (isStaticHosting) {
+      // Simulate sending on static pages and preserve local history in localStorage as fallback
+      setTimeout(() => {
+        try {
+          const freshMsg: MessageLog = {
+            id: `msg_${Date.now()}`,
+            name,
+            email,
+            subject,
+            message,
+            timestamp: new Date().toLocaleString()
+          };
+          
+          const localData = localStorage.getItem("falcon_contact_messages");
+          const curList: MessageLog[] = localData ? JSON.parse(localData) : [];
+          const updated = [freshMsg, ...curList];
+          
+          localStorage.setItem("falcon_contact_messages", JSON.stringify(updated));
+          setSentMessages(updated);
+          
+          setSuccessMsg("Your inquiry was logged successfully! Since this is running in a static web environment (GitHub Pages), the message has been secured in your browser's local storage database.");
+          setName("");
+          setEmail("");
+          setSubject("");
+          setMessage("");
+        } catch (err: any) {
+          setErrorMsg("Could not save message locally: " + err.message);
+        } finally {
+          setIsSending(false);
+        }
+      }, 600);
+      return;
+    }
 
     try {
       const res = await fetch("/api/send-message", {

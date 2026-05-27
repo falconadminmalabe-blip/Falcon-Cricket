@@ -148,6 +148,19 @@ export default function App() {
   // Fetch from our full-stack Express backend, supporting client-side parsing fallback for offline or static hosting environments (like GitHub Pages)
   const fetchBookings = async (urlToFetch: string = dropboxUrl) => {
     setIsSyncing(true);
+    
+    const isStaticHosting = window.location.hostname.endsWith(".github.io") || 
+                           window.location.protocol === "file:" ||
+                           window.location.hostname.includes("gitpod") ||
+                           window.location.hostname.includes("codesandbox") ||
+                           window.location.pathname.startsWith("/Falcon-Cricket");
+
+    if (isStaticHosting) {
+      console.log("Static hosting environment detected (GitHub Pages). Bypassing server API to prevent 404, reading sheet directly...");
+      await runClientSideFallback(urlToFetch);
+      return;
+    }
+
     try {
       const apiEndpoint = urlToFetch 
         ? `/api/bookings?url=${encodeURIComponent(urlToFetch)}` 
@@ -164,106 +177,111 @@ export default function App() {
         throw new Error(data.error || "Failed parsing sheet headers.");
       }
     } catch (err: any) {
-      console.warn("Backend fetch failed. Trying client-side Excel parsing fallback (for Static/GitHub Pages hosting)...", err);
-      try {
-        // Direct Dropbox direct download URL derivation
-        let directUrl = urlToFetch;
-        if (directUrl && directUrl.includes("dropbox.com")) {
-          directUrl = directUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com");
-          directUrl = directUrl.replace("://dropbox.com", "://dl.dropboxusercontent.com");
-          if (directUrl.includes("dl=0")) {
-            directUrl = directUrl.replace("dl=0", "dl=1");
-          } else if (!directUrl.includes("?")) {
-            directUrl += "?dl=1";
-          }
-        } else {
-          directUrl = "booking.xlsx";
-        }
-
-        let response;
-        try {
-          // Attempt direct fetch from direct download link (if CORS permits)
-          response = await fetch(directUrl);
-          if (!response.ok) throw new Error(`Dropbox direct status: ${response.status}`);
-        } catch (subErr) {
-          console.warn("Direct Dropbox fetch failed or got CORS blocked. Falling back to relative local booking.xlsx file:", subErr);
-          response = await fetch("booking.xlsx");
-          if (!response.ok) throw new Error("Relative local booking.xlsx file fetch failed.");
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        if (!worksheet) throw new Error("Workbook format invalid: First sheet not found.");
-        
-        const rawJson: any[] = XLSX.utils.sheet_to_json(worksheet);
-
-        // Core extraction helpers
-        const getRowVal = (row: any, keys: string[]): string | undefined => {
-          const rowKeys = Object.keys(row);
-          for (const k of keys) {
-            const matchedKey = rowKeys.find(rk => rk.toLowerCase().trim() === k.toLowerCase());
-            if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
-              return String(row[matchedKey]);
-            }
-          }
-          return undefined;
-        };
-
-        const parseTimeRangeValue = (val: any): string => {
-          if (val === undefined || val === null) return "";
-          const str = String(val).trim();
-          const num = Number(str);
-          if (!isNaN(num) && num > 0 && num < 1) {
-            const totalMinutes = Math.round(num * 24 * 60);
-            const hours24 = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            const period = hours24 >= 12 ? "PM" : "AM";
-            const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-            const minStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
-            const hrStr = hours12 < 10 ? `0${hours12}` : `${hours12}`;
-            return `${hrStr}:${minStr} ${period}`;
-          }
-          return str;
-        };
-
-        const nameKeys = ["name", "customer", "client", "player", "user", "naam", "lead", "booked by", "passenger"];
-        const phoneKeys = ["phone no.", "phone no", "phone", "contact", "mobile", "telephone", "phone number", "number", "tel", "contact number"];
-        const facilityKeys = ["type", "facility", "net", "lane", "booking type", "resource", "nets", "facility booked"];
-        const timeKeys = ["time", "start time", "start", "time from", "starttime", "from", "start_time", "slot"];
-        const statusKeys = ["status", "state", "booking status", "approved", "confirmed"];
-
-        const parsedList: Booking[] = rawJson.map((row, idx) => {
-          const noKeys = ["no", "id", "serial"];
-          const rowIdRaw = getRowVal(row, noKeys);
-          const parsedId = rowIdRaw ? parseInt(rowIdRaw, 10) : (idx + 1);
-
-          const name = getRowVal(row, nameKeys) || `Guest ${idx + 1}`;
-          const phone = getRowVal(row, phoneKeys) || "077 000 0000";
-          const facility = getRowVal(row, facilityKeys) || "Net Sessions";
-          const rawTime = getRowVal(row, timeKeys) || "09:00 AM - 10:00 AM";
-          const statusVal = getRowVal(row, statusKeys) || "Confirmed";
-
-          return {
-            id: isNaN(parsedId) ? (idx + 1) : parsedId,
-            name,
-            phone,
-            facility,
-            time: parseTimeRangeValue(rawTime),
-            status: String(statusVal).trim().toLowerCase().includes("pending") ? "Pending" : "Confirmed"
-          };
-        });
-
-        setBookings(parsedList);
-        setSyncError(null); // Clear errors since fallback extraction was completely successful!
-      } catch (fallbackErr: any) {
-        console.error("Client-side spreadsheet extraction engine failed:", fallbackErr);
-        setSyncError(`Failed to load. Both API and web spreadsheet engine offline: ${fallbackErr.message || fallbackErr}`);
-      }
+      console.warn("Backend fetch failed. Trying client-side Excel parsing fallback...", err);
+      await runClientSideFallback(urlToFetch);
     } finally {
       setIsSyncing(false);
       setLastUpdated(new Date().toLocaleTimeString());
+    }
+  };
+
+  const runClientSideFallback = async (urlToFetch: string) => {
+    try {
+      // Direct Dropbox direct download URL derivation
+      let directUrl = urlToFetch;
+      if (directUrl && directUrl.includes("dropbox.com")) {
+        directUrl = directUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com");
+        directUrl = directUrl.replace("://dropbox.com", "://dl.dropboxusercontent.com");
+        if (directUrl.includes("dl=0")) {
+          directUrl = directUrl.replace("dl=0", "dl=1");
+        } else if (!directUrl.includes("?")) {
+          directUrl += "?dl=1";
+        }
+      } else {
+        directUrl = (import.meta.env.BASE_URL || "/") + "booking.xlsx";
+      }
+
+      let response;
+      try {
+        // Attempt direct fetch from direct download link (if CORS permits)
+        response = await fetch(directUrl);
+        if (!response.ok) throw new Error(`Dropbox direct status: ${response.status}`);
+      } catch (subErr) {
+        console.warn("Direct Dropbox fetch failed or got CORS blocked. Falling back to relative local booking.xlsx file:", subErr);
+        const relativeLocalPath = (import.meta.env.BASE_URL || "/") + "booking.xlsx";
+        response = await fetch(relativeLocalPath);
+        if (!response.ok) throw new Error("Relative local booking.xlsx file fetch failed.");
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      if (!worksheet) throw new Error("Workbook format invalid: First sheet not found.");
+      
+      const rawJson: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      // Core extraction helpers
+      const getRowVal = (row: any, keys: string[]): string | undefined => {
+        const rowKeys = Object.keys(row);
+        for (const k of keys) {
+          const matchedKey = rowKeys.find(rk => rk.toLowerCase().trim() === k.toLowerCase());
+          if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+            return String(row[matchedKey]);
+          }
+        }
+        return undefined;
+      };
+
+      const parseTimeRangeValue = (val: any): string => {
+        if (val === undefined || val === null) return "";
+        const str = String(val).trim();
+        const num = Number(str);
+        if (!isNaN(num) && num > 0 && num < 1) {
+          const totalMinutes = Math.round(num * 24 * 60);
+          const hours24 = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+          const period = hours24 >= 12 ? "PM" : "AM";
+          const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+          const minStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
+          const hrStr = hours12 < 10 ? `0${hours12}` : `${hours12}`;
+          return `${hrStr}:${minStr} ${period}`;
+        }
+        return str;
+      };
+
+      const nameKeys = ["name", "customer", "client", "player", "user", "naam", "lead", "booked by", "passenger"];
+      const phoneKeys = ["phone no.", "phone no", "phone", "contact", "mobile", "telephone", "phone number", "number", "tel", "contact number"];
+      const facilityKeys = ["type", "facility", "net", "lane", "booking type", "resource", "nets", "facility booked"];
+      const timeKeys = ["time", "start time", "start", "time from", "starttime", "from", "start_time", "slot"];
+      const statusKeys = ["status", "state", "booking status", "approved", "confirmed"];
+
+      const parsedList: Booking[] = rawJson.map((row, idx) => {
+        const noKeys = ["no", "id", "serial"];
+        const rowIdRaw = getRowVal(row, noKeys);
+        const parsedId = rowIdRaw ? parseInt(rowIdRaw, 10) : (idx + 1);
+
+        const name = getRowVal(row, nameKeys) || `Guest ${idx + 1}`;
+        const phone = getRowVal(row, phoneKeys) || "077 000 0000";
+        const facility = getRowVal(row, facilityKeys) || "Net Sessions";
+        const rawTime = getRowVal(row, timeKeys) || "09:00 AM - 10:00 AM";
+        const statusVal = getRowVal(row, statusKeys) || "Confirmed";
+
+        return {
+          id: isNaN(parsedId) ? (idx + 1) : parsedId,
+          name,
+          phone,
+          facility,
+          time: parseTimeRangeValue(rawTime),
+          status: String(statusVal).trim().toLowerCase().includes("pending") ? "Pending" : "Confirmed"
+        };
+      });
+
+      setBookings(parsedList);
+      setSyncError(null); // Clear errors since fallback extraction was completely successful!
+    } catch (fallbackErr: any) {
+      console.error("Client-side spreadsheet extraction engine failed:", fallbackErr);
+      setSyncError(`Failed to load. Both API and web spreadsheet engine offline: ${fallbackErr.message || fallbackErr}`);
     }
   };
 
