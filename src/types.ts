@@ -12,4 +12,11 @@ export interface Facility {
   title: string;
   description: string;
   image: string;
+  features: {
+    stumps: boolean;
+    runUp: boolean;
+    dividers: boolean;
+    markers: boolean;
+    bowlingMachine?: boolean;
+  };
 }

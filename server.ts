@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import * as XLSX from "xlsx";
 import { createServer as createViteServer } from "vite";
+import nodemailer from "nodemailer";
 
 const app = express();
 const PORT = 3000;
@@ -194,6 +195,122 @@ app.get("/api/bookings", async (req, res) => {
       return res.status(500).json({ success: false, error: error.message });
     }
   }
+});
+
+// Dynamic Email Message Sender storage & endpoints
+interface ContactMsg {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  timestamp: string;
+}
+
+const contactMessages: ContactMsg[] = [
+  {
+    id: "msg-1",
+    name: "Janadeepa",
+    email: "janadeepa@example.com",
+    subject: "Coaching Availability Request",
+    message: "Looking to book 1-on-1 private coaching for the afternoon net sessions next Friday. Do you have slots open?",
+    timestamp: "May 25, 2026, 11:30 AM"
+  }
+];
+
+app.get("/api/contact-messages", (req, res) => {
+  res.json({ success: true, messages: contactMessages });
+});
+
+// Send real email using nodemailer if configured
+async function sendRealEmail(fromName: string, fromEmail: string, subject: string, message: string) {
+  const adminEmail = "falconadminmalabe@gmail.com";
+  // Check for any of these common environment variable keys
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+  if (!user || !pass) {
+    console.log(`[Email Simulator] Real email transmission skipped: SMTP_USER and SMTP_PASS are empty in environment configuration.`);
+    return false;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: user,
+        pass: pass,
+      },
+    });
+
+    const mailOptions = {
+      from: `"${fromName}" <${user}>`,
+      to: adminEmail,
+      replyTo: fromEmail,
+      subject: `[Falcon Contact Request] ${subject}`,
+      text: `Hello Falcon Admin,\n\nYou have received a new contact submission from your Malabe Complex Cricket website.\n\nSender Name: ${fromName}\nSender Email: ${fromEmail}\nSubject: ${subject}\n\nMessage:\n${message}\n\n---\nSent via Falcon Sport Complex Dashboard`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <h2 style="color: #DC2626; border-bottom: 2px solid #ef4444; padding-bottom: 10px; margin-top: 0; font-family: system-ui, sans-serif;">New Support Inquiry</h2>
+          <p style="margin: 6px 0;"><strong>Sender Name:</strong> ${fromName}</p>
+          <p style="margin: 6px 5px 6px 0;"><strong>Sender Email:</strong> ${fromEmail}</p>
+          <p style="margin: 6px 0;"><strong>Subject:</strong> ${subject}</p>
+          <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
+          <p style="font-weight: 600; margin-bottom: 8px;">Message Content:</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 16px; border-radius: 4px; font-style: italic; white-space: pre-line; line-height: 1.6; color: #334155;">
+            ${message}
+          </div>
+          <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
+          <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">This communication was dispatched securely via Falcon Cricket Net Booking Systems.</p>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Email Success] SMTP Message sent successfully: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error("[Email SMTP Error] Connection failed or credentials incorrect:", error);
+    return false;
+  }
+}
+
+app.post("/api/send-message", async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ success: false, error: "All contact fields are required." });
+  }
+
+  const newMsg: ContactMsg = {
+    id: `msg-${Date.now()}`,
+    name,
+    email,
+    subject,
+    message,
+    timestamp: new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    }) + ", " + new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit"
+    })
+  };
+
+  // Prepend to local messages array so it displays on the screen
+  contactMessages.unshift(newMsg);
+  console.log(`[Message Lodged] In-app contact recorded for ${name} (${email})`);
+
+  // Try real dynamic SMTP email dispatch
+  const isSentReal = await sendRealEmail(name, email, subject, message);
+
+  res.json({ 
+    success: true, 
+    message: isSentReal 
+      ? "Your message was sent successfully to falconadminmalabe@gmail.com and logged!" 
+      : "Your message has been processed successfully and simulation logged in backend console.",
+    realTransmission: isSentReal ? "delivered" : "simulated"
+  });
 });
 
 // Start listening and serve application files

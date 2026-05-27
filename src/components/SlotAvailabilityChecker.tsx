@@ -5,6 +5,7 @@ import { Booking } from "../types";
 
 interface SlotAvailabilityCheckerProps {
   bookings: Booking[];
+  isDarkMode?: boolean;
 }
 
 export interface TimeRange {
@@ -95,7 +96,7 @@ export function rangesOverlap(r1: TimeRange, r2: TimeRange): boolean {
   return Math.max(r1.start, r2.start) < Math.min(r1.end, r2.end);
 }
 
-export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCheckerProps) {
+export default function SlotAvailabilityChecker({ bookings, isDarkMode = false }: SlotAvailabilityCheckerProps) {
   const [selectedFacility, setSelectedFacility] = useState<string>("Net Sessions");
   const [selectedPresetTime, setSelectedPresetTime] = useState<string>("");
   const [timeSelectionMode, setTimeSelectionMode] = useState<"preset" | "custom">("preset");
@@ -254,31 +255,53 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-3xl border border-slate-200/90 p-6 md:p-8 shadow-sm space-y-6"
+      className={`rounded-3xl border p-6 md:p-8 shadow-xs space-y-6 ${
+        isDarkMode 
+          ? "bg-slate-900 border-slate-805 text-slate-100" 
+          : "bg-white border-slate-200/90 text-slate-800"
+      }`}
       id="slot-availability-checker"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-150">
+      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b ${
+        isDarkMode ? "border-slate-800" : "border-slate-150"
+      }`}>
         <div>
-          <h3 className="font-sans font-bold text-slate-900 text-lg md:text-xl tracking-tight flex items-center gap-2">
-            <span className="p-1.5 bg-red-50 text-red-650 rounded-lg shrink-0">
+          <h3 className={`font-sans font-bold text-lg md:text-xl tracking-tight flex items-center gap-2 ${
+            isDarkMode ? "text-slate-100" : "text-slate-900"
+          }`}>
+            <span className={`p-1.5 rounded-lg shrink-0 ${
+              isDarkMode ? "bg-red-950/40 text-red-400" : "bg-red-50 text-red-650"
+            }`}>
               <Clock className="w-5 h-5" />
             </span>
             Facility Capacity & Slot Finder
           </h3>
-          <p className="text-slate-500 text-xs md:text-sm mt-0.5">
+          <p className={`${isDarkMode ? "text-slate-400" : "text-slate-500"} text-xs md:text-sm mt-0.5`}>
             Search if a slot is free, and see dynamic capacity utilization relative to training rules
           </p>
         </div>
 
         {/* Dynamic Rules Badge Info summary bubble */}
         <div className="flex flex-wrap gap-2 text-[10px] font-bold tracking-wider">
-          <span className="px-2 py-1 bg-red-50 text-red-700 rounded-md border border-red-100 uppercase">
+          <span className={`px-2 py-1 rounded-md border uppercase ${
+            isDarkMode 
+              ? "bg-red-950/20 text-red-400 border-red-900/40" 
+              : "bg-red-50 text-red-700 border-red-100"
+          }`}>
             Bowling Machine: Max 1
           </span>
-          <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 uppercase">
+          <span className={`px-2 py-1 rounded-md border uppercase ${
+            isDarkMode 
+              ? "bg-emerald-950/20 text-emerald-400 border-emerald-900/40" 
+              : "bg-emerald-50 text-emerald-700 border-emerald-100"
+          }`}>
             Nets: Max 3
           </span>
-          <span className="px-2 py-1 bg-sky-50 text-sky-700 rounded-md border border-sky-100 uppercase">
+          <span className={`px-2 py-1 rounded-md border uppercase ${
+            isDarkMode 
+              ? "bg-sky-950/20 text-sky-400 border-sky-900/40" 
+              : "bg-sky-50 text-sky-700 border-sky-100"
+          }`}>
             Gym: Max 10
           </span>
         </div>
@@ -289,7 +312,9 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
         <div className="space-y-4">
           {/* 1. Facility Selector Option */}
           <div className="space-y-1.5 text-left">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+            <label className={`text-xs font-bold uppercase tracking-wider block ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}>
               1. Select Training Facility
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -301,13 +326,19 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
                     onClick={() => setSelectedFacility(facilityName)}
                     className={`py-3 px-2.5 rounded-xl text-center text-xs font-bold border transition-all duration-200 flex flex-col items-center justify-center gap-1.5 select-none ${
                       isActive
-                        ? "bg-red-600 border-red-600 text-white shadow-md shadow-red-100/50"
-                        : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                        ? "bg-red-600 border-red-600 text-white shadow-md shadow-red-900/30"
+                        : isDarkMode
+                          ? "bg-slate-800 border-slate-700/80 text-slate-300 hover:bg-slate-700"
+                          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
                     }`}
                   >
                     <span className="truncate max-w-full text-center">{facilityName}</span>
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                      isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                      isActive 
+                        ? "bg-white/20 text-white" 
+                        : isDarkMode 
+                          ? "bg-slate-900 text-slate-400"
+                          : "bg-slate-100 text-slate-505"
                     }`}>
                       Limit: {facilityConfig[facilityName].max}
                     </span>
@@ -320,17 +351,25 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
           {/* 2. Select Time Option */}
           <div className="space-y-2.5 text-left">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label className={`text-xs font-bold uppercase tracking-wider ${
+                isDarkMode ? "text-slate-400" : "text-slate-505"
+              }`}>
                 2. Select or Build Time Slot
               </label>
-              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+              <div className={`flex rounded-lg p-0.5 border ${
+                isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-100 border-slate-200"
+              }`}>
                 <button
                   type="button"
                   onClick={() => setTimeSelectionMode("preset")}
                   className={`py-1 px-2.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide transition-all ${
                     timeSelectionMode === "preset"
-                      ? "bg-white text-slate-800 shadow-xs"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? isDarkMode 
+                        ? "bg-slate-950 text-slate-100 shadow-xs" 
+                        : "bg-white text-slate-800 shadow-xs"
+                      : isDarkMode 
+                        ? "text-slate-400 hover:text-slate-300" 
+                        : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   Presets
@@ -340,8 +379,12 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
                   onClick={() => setTimeSelectionMode("custom")}
                   className={`py-1 px-2.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide transition-all ${
                     timeSelectionMode === "custom"
-                      ? "bg-white text-slate-800 shadow-xs"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? isDarkMode 
+                        ? "bg-slate-950 text-slate-100 shadow-xs" 
+                        : "bg-white text-slate-800 shadow-xs"
+                      : isDarkMode 
+                        ? "text-slate-400 hover:text-slate-300"
+                        : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   Custom Builder
@@ -354,7 +397,11 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
                 <select
                   value={selectedPresetTime}
                   onChange={(e) => setSelectedPresetTime(e.target.value)}
-                  className="block w-full px-3.5 py-3.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-800 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-red-500/10 focus:border-red-650 transition-all cursor-pointer"
+                  className={`block w-full px-3.5 py-3.5 border rounded-xl text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-red-500/10 focus:border-red-650 transition-all cursor-pointer ${
+                    isDarkMode 
+                      ? "bg-slate-800 border-slate-700 hover:border-slate-650 text-slate-200" 
+                      : "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800"
+                  }`}
                 >
                   {presetTimeSlots.map((timePreset) => (
                     <option key={timePreset} value={timePreset}>
@@ -364,49 +411,77 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
                 </select>
               </div>
             ) : (
-              <div className="space-y-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200">
+              <div className={`space-y-3 p-3.5 rounded-2xl border ${
+                isDarkMode ? "bg-slate-805/40 border-slate-750" : "bg-slate-50/70 border-slate-200"
+              }`}>
                 {/* Start Time Selectors Row */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Start Time</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                    isDarkMode ? "text-slate-500" : "text-slate-400"
+                  }`}>Start Time</span>
                   <div className="grid grid-cols-3 gap-2">
                     {/* Hour */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">Hour</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>Hour</span>
                       <select
                         value={startHour}
                         onChange={(e) => setStartHour(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-505/20 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
                         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(h => (
-                          <option key={h} value={h}>{h}</option>
+                          <option 
+                            key={h} 
+                            value={h}
+                            className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}
+                          >
+                            {h}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Minute */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">Minute</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>Minute</span>
                       <select
                         value={startMinute}
                         onChange={(e) => setStartMinute(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 max-h-40"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-505/20 max-h-40 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
                         {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map(m => (
-                          <option key={m} value={m}>{m}</option>
+                          <option 
+                            key={m} 
+                            value={m}
+                            className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}
+                          >
+                            {m}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* AM/PM */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">AM/PM</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>AM/PM</span>
                       <select
                         value={startAmPm}
                         onChange={(e) => setStartAmPm(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
+                        <option value="AM" className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}>AM</option>
+                        <option value="PM" className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}>PM</option>
                       </select>
                     </div>
                   </div>
@@ -414,55 +489,85 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
 
                 {/* End Time Selectors Row */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">End Time</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                    isDarkMode ? "text-slate-500" : "text-slate-400"
+                  }`}>End Time</span>
                   <div className="grid grid-cols-3 gap-2">
                     {/* Hour */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">Hour</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>Hour</span>
                       <select
                         value={endHour}
                         onChange={(e) => setEndHour(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
                         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(h => (
-                          <option key={h} value={h}>{h}</option>
+                          <option 
+                            key={h} 
+                            value={h}
+                            className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}
+                          >
+                            {h}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Minute */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">Minute</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>Minute</span>
                       <select
                         value={endMinute}
                         onChange={(e) => setEndMinute(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 text-slate-850"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
                         {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map(m => (
-                          <option key={m} value={m}>{m}</option>
+                          <option 
+                            key={m} 
+                            value={m}
+                            className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}
+                          >
+                            {m}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* AM/PM */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-medium">AM/PM</span>
+                      <span className={`text-[9px] font-medium ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>AM/PM</span>
                       <select
                         value={endAmPm}
                         onChange={(e) => setEndAmPm(e.target.value)}
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20"
+                        className={`w-full px-2 py-2 border rounded-lg text-xs font-bold cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-red-500/20 ${
+                          isDarkMode 
+                            ? "bg-slate-800 border-slate-700 text-slate-100" 
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
                       >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
+                        <option value="AM" className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}>AM</option>
+                        <option value="PM" className={isDarkMode ? "bg-slate-800 text-slate-100" : "bg-white text-slate-800"}>PM</option>
                       </select>
                     </div>
                   </div>
                 </div>
 
                 {/* Live parsed feedback banner */}
-                <div className="p-2.5 bg-red-500/5 rounded-xl border border-red-500/10 text-center">
-                  <span className="text-[9px] text-slate-400 font-bold tracking-wider block uppercase">Calculated Range:</span>
-                  <span className="text-xs font-extrabold text-red-650 flex items-center justify-center gap-1.5 mt-0.5">
+                <div className={`p-2.5 rounded-xl border text-center ${
+                  isDarkMode ? "bg-red-950/10 border-red-900/40" : "bg-red-500/5 border-red-500/10"
+                }`}>
+                  <span className={`text-[9px] font-bold tracking-wider block uppercase ${
+                    isDarkMode ? "text-slate-500" : "text-slate-400"
+                  }`}>Calculated Range:</span>
+                  <span className="text-xs font-extrabold text-[#DC2626] flex items-center justify-center gap-1.5 mt-0.5">
                     <Clock className="w-3.5 h-3.5 shrink-0" />
                     <span>{startHour}:{startMinute} {startAmPm} - {endHour}:{endMinute} {endAmPm}</span>
                   </span>
@@ -473,18 +578,22 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
         </div>
 
         {/* Right column: Availability outcome screen panel */}
-        <div className="bg-slate-50/50 rounded-2xl border border-slate-200/70 p-5 flex flex-col justify-between space-y-5">
+        <div className={`rounded-xl border p-5 flex flex-col justify-between space-y-5 ${
+          isDarkMode ? "bg-slate-800/20 border-slate-800" : "bg-slate-50/50 border-slate-200/70"
+        }`}>
           {/* Header query title */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${
+              isDarkMode ? "text-slate-500" : "text-slate-400"
+            }`}>
               <Calendar className="w-3.5 h-3.5" />
               <span>Matching Status for:</span>
             </div>
             <div className="space-y-1">
-              <h4 className="font-bold text-slate-900 text-base">
+              <h4 className={`font-bold text-base ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
                 {selectedFacility}
               </h4>
-              <p className="text-red-650 font-semibold text-sm flex items-center gap-1.5">
+              <p className="text-red-500 font-semibold text-sm flex items-center gap-1.5">
                 <Clock className="w-4 h-4" />
                 <span>{activeTimeQuery || "Select a time"}</span>
               </p>
@@ -493,9 +602,11 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
 
           {/* Utilization dynamic meter/gauge metrics info */}
           <div className="space-y-3 shrink-0">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+            <div className={`flex items-center justify-between text-xs font-bold ${
+              isDarkMode ? "text-slate-400" : "text-slate-605"
+            }`}>
               <span className="flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-slate-400" />
+                <Users className="w-4 h-4 text-slate-500" />
                 Slots Booked
               </span>
               <span>
@@ -504,7 +615,9 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
             </div>
 
             {/* Simulated progress color code */}
-            <div className="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300/40">
+            <div className={`w-full h-3.5 rounded-full overflow-hidden border ${
+              isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-205 border-slate-300/40"
+            }`}>
               <div 
                 style={{ width: `${occupancyPercent}%` }}
                 className={`h-full rounded-full transition-all duration-500 ${
@@ -520,10 +633,10 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
             {/* Large clear interactive outcome banner */}
             <div className={`p-4 rounded-xl border flex items-start gap-3 text-left transition-colors duration-200 ${
               statusType === "full"
-                ? "bg-red-50/40 border-red-200 text-red-900"
+                ? isDarkMode ? "bg-red-950/20 border-red-900/55 text-red-200" : "bg-red-50/40 border-red-200 text-red-900"
                 : statusType === "limited"
-                ? "bg-amber-50/40 border-amber-200 text-amber-900"
-                : "bg-emerald-50/40 border-emerald-200 text-emerald-900"
+                ? isDarkMode ? "bg-amber-950/20 border-amber-900/55 text-amber-200" : "bg-amber-50/40 border-amber-200 text-amber-900"
+                : isDarkMode ? "bg-emerald-950/20 border-emerald-900/55 text-emerald-250" : "bg-emerald-50/40 border-emerald-200 text-emerald-900"
             }`}>
               <div className="shrink-0 mt-0.5">
                 {statusType === "full" ? (
@@ -543,7 +656,9 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
                     : "Available for booking"
                   }
                 </p>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                <p className={`text-xs font-medium leading-relaxed ${
+                  isDarkMode ? "text-slate-400" : "text-slate-500"
+                }`}>
                   {statusType === "full"
                     ? `Cannot accommodate more bookings. Capacity of ${maxCapacity} reached.`
                     : `${remainingSlots} slot${remainingSlots === 1 ? "" : "s"} free out of ${maxCapacity} authorized.`
@@ -556,9 +671,13 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
       </div>
 
       {/* Slots details: Bookings occupant list */}
-      <div className="space-y-3 pt-4 border-t border-slate-150">
-        <h4 className="font-bold text-slate-800 text-sm text-left flex items-center gap-1.5">
-          <Info className="w-4 h-4 text-slate-400" />
+      <div className={`space-y-3 pt-4 border-t ${
+        isDarkMode ? "border-slate-800" : "border-slate-150"
+      }`}>
+        <h4 className={`font-bold text-sm text-left flex items-center gap-1.5 ${
+          isDarkMode ? "text-slate-200" : "text-slate-800"
+        }`}>
+          <Info className="w-4 h-4 text-slate-500" />
           Occupants List with Reserved Entries ({bookingCount})
         </h4>
 
@@ -567,35 +686,55 @@ export default function SlotAvailabilityChecker({ bookings }: SlotAvailabilityCh
             {matchingBookings.map((b) => (
               <div 
                 key={b.id} 
-                className={`p-3.5 bg-white rounded-xl border text-left shadow-xs transition-colors flex flex-col justify-between gap-1 ${
-                  b.status === "Confirmed" ? "border-green-150" : "border-amber-150"
+                className={`p-3.5 rounded-xl border text-left shadow-xs transition-colors flex flex-col justify-between gap-1 ${
+                  isDarkMode 
+                    ? b.status === "Confirmed" 
+                      ? "bg-slate-800/85 border-emerald-900/40" 
+                      : "bg-slate-800/85 border-amber-900/40"
+                    : b.status === "Confirmed" 
+                      ? "bg-white border-green-150" 
+                      : "bg-white border-amber-150"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800 text-sm truncate max-w-[140px]">
+                  <span className={`font-bold text-sm truncate max-w-[140px] ${
+                    isDarkMode ? "text-slate-200" : "text-slate-800"
+                  }`}>
                     {b.name}
                   </span>
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                    b.status === "Confirmed"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-amber-50 text-amber-700 border border-amber-200"
+                    isDarkMode
+                      ? b.status === "Confirmed"
+                        ? "bg-emerald-950/45 text-emerald-400 border border-emerald-900/50"
+                        : "bg-amber-950/45 text-amber-400 border border-amber-900/50"
+                      : b.status === "Confirmed"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200"
                   }`}>
                     {b.status === "Confirmed" ? "Active" : "NC-Y"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-slate-500 text-xs mt-0.5">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <div className={`flex items-center gap-1.5 text-xs mt-0.5 ${
+                  isDarkMode ? "text-slate-400" : "text-slate-505"
+                }`}>
+                  <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span>{b.phone ? b.phone.substring(0, 3) + "*****" + b.phone.substring(Math.max(0, b.phone.length - 2)) : "Hidden"}</span>
                 </div>
-                <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 mt-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <div className={`text-[10px] font-bold flex items-center gap-1.5 mt-1 ${
+                  isDarkMode ? "text-slate-400" : "text-slate-505"
+                }`}>
+                  <Clock className="w-3.5 h-3.5 text-slate-505 shrink-0" />
                   <span>{b.time}</span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-slate-50 rounded-xl p-5 border border-dashed border-slate-200 text-center text-slate-500 text-xs font-semibold">
+          <div className={`rounded-xl p-5 border border-dashed text-center text-xs font-semibold ${
+            isDarkMode 
+              ? "bg-slate-850/30 border-slate-800/85 text-slate-400" 
+              : "bg-slate-55 rounded-xl border-slate-200 text-slate-500"
+          }`}>
             No current reservations listed at "{activeTimeQuery}" for {selectedFacility}. This slot is completely free!
           </div>
         )}
