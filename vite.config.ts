@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+   base: '/Falcon-Cricket/', // 👈 Updated with your exact repository name
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
@@ -12,6 +13,7 @@ export default defineConfig(() => {
       },
     },
     server: {
+      // HMR is
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

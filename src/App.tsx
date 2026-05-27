@@ -163,7 +163,7 @@ export default function App() {
         throw new Error(data.error || "Failed parsing sheet headers.");
       }
     } catch (err: any) {
-      console.error("Fetch failed:", err);
+      console.warn("Fetch failed (transient network or idle sleep):", err);
       setSyncError(err.message || "Failed connecting to backend.");
     } finally {
       setIsSyncing(false);

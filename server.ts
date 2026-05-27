@@ -191,8 +191,8 @@ app.get("/api/bookings", async (req, res) => {
         data: formattedData,
         warning: "Custom Dropbox sync link failed to load. Displaying local booking.xlsx contents."
       });
-    } catch (fallbackError) {
-      return res.status(500).json({ success: false, error: error.message });
+    } catch (fallbackError: any) {
+      return res.status(500).json({ success: false, error: fallbackError.message || String(fallbackError) });
     }
   }
 });
