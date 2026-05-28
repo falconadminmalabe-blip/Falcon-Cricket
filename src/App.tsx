@@ -23,7 +23,9 @@ import {
   Facebook,
   Instagram,
   User,
-  LogOut
+  LogOut,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import FalconLogo from "./components/FalconLogo";
 import BookingCard from "./components/BookingCard";
@@ -81,6 +83,53 @@ export default function App() {
   const [searchTimeQuery, setSearchTimeQuery] = useState("");
   const [selectedFacilityFilter, setSelectedFacilityFilter] = useState("All");
   const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(false);
+
+  // Connection bandwidth and stability states for Today's bookings section
+  const [isSlowFetchActive, setIsSlowFetchActive] = useState(false);
+  const [simulateLowData, setSimulateLowData] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [effectiveConnection, setEffectiveConnection] = useState<string>("unknown");
+  const [isSaveData, setIsSaveData] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    
+    const updateConnectionStats = () => {
+      const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      if (conn) {
+        setEffectiveConnection(conn.effectiveType || "unknown");
+        setIsSaveData(!!conn.saveData);
+      }
+    };
+    
+    updateConnectionStats();
+    
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (conn && conn.addEventListener) {
+      conn.addEventListener("change", updateConnectionStats);
+    }
+    
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      if (conn && conn.removeEventListener) {
+        conn.removeEventListener("change", updateConnectionStats);
+      }
+    };
+  }, []);
+
+  const isNetworkLowOrUnstable = useMemo(() => {
+    if (simulateLowData) return true;
+    if (isOffline) return true;
+    if (effectiveConnection === "slow-2g" || effectiveConnection === "2g" || effectiveConnection === "3g") return true;
+    if (isSaveData) return true;
+    if (isSlowFetchActive) return true;
+    return false;
+  }, [simulateLowData, isOffline, effectiveConnection, isSaveData, isSlowFetchActive]);
 
   const uniqueTimeOptions = useMemo(() => {
     const times = new Set<string>();
@@ -148,6 +197,12 @@ export default function App() {
   // Fetch from our full-stack Express backend, supporting client-side parsing fallback for offline or static hosting environments (like GitHub Pages)
   const fetchBookings = async (urlToFetch: string = dropboxUrl) => {
     setIsSyncing(true);
+    setIsSlowFetchActive(false);
+
+    // Setup an unstable/low data connection latency detector (trigger after 1500ms)
+    const slowTimer = setTimeout(() => {
+      setIsSlowFetchActive(true);
+    }, 1500);
     
     const isStaticHosting = window.location.hostname.endsWith(".github.io") || 
                            window.location.protocol === "file:" ||
@@ -157,7 +212,14 @@ export default function App() {
 
     if (isStaticHosting) {
       console.log("Static hosting environment detected (GitHub Pages). Bypassing server API to prevent 404, reading sheet directly...");
-      await runClientSideFallback(urlToFetch);
+      try {
+        await runClientSideFallback(urlToFetch);
+      } finally {
+        clearTimeout(slowTimer);
+        setIsSlowFetchActive(false);
+        setIsSyncing(false);
+        setLastUpdated(new Date().toLocaleTimeString());
+      }
       return;
     }
 
@@ -180,6 +242,8 @@ export default function App() {
       console.warn("Backend fetch failed. Trying client-side Excel parsing fallback...", err);
       await runClientSideFallback(urlToFetch);
     } finally {
+      clearTimeout(slowTimer);
+      setIsSlowFetchActive(false);
       setIsSyncing(false);
       setLastUpdated(new Date().toLocaleTimeString());
     }
@@ -847,7 +911,7 @@ export default function App() {
                 Real-time booking information updated every 30 seconds
               </p>
                            {/* Dynamic last updated pill indicator */}
-              <div className="pt-2 flex items-center justify-center gap-2 text-xs font-semibold">
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 text-xs font-semibold">
                 <button 
                   onClick={() => fetchBookings()} 
                   disabled={isSyncing}
@@ -860,6 +924,32 @@ export default function App() {
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-red-500" : isDarkMode ? "text-slate-500" : "text-slate-450"}`} />
                   <span>Last updated: {lastUpdated || "Initializing..."}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSimulateLowData(!simulateLowData)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-xs font-extrabold cursor-pointer ${
+                    simulateLowData
+                      ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border-amber-500/30 shadow-xs"
+                      : isNetworkLowOrUnstable
+                        ? "bg-yellow-500/10 hover:bg-yellow-500/15 text-yellow-500 border-yellow-500/25 "
+                        : isDarkMode
+                          ? "bg-slate-800 border-slate-700 text-slate-350 hover:bg-slate-750 hover:text-slate-200"
+                          : "bg-slate-100 border-slate-200 text-slate-550 hover:bg-slate-200/70 hover:text-slate-750"
+                  }`}
+                  title="Click to toggle simulated low data / unstable connection"
+                  id="toggle-simulator-net-btn"
+                >
+                  {isOffline ? (
+                    <WifiOff className="w-3.5 h-3.5 text-red-500" />
+                  ) : (
+                    <Wifi className={`w-3.5 h-3.5 ${isNetworkLowOrUnstable ? "text-amber-500 animate-pulse" : "text-emerald-500"}`} />
+                  )}
+                  <span>
+                    Net: {isOffline ? "Offline" : isNetworkLowOrUnstable ? "Low Data / Unstable" : "Excellent"}
+                    {simulateLowData && " (Simulated)"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -1159,13 +1249,35 @@ export default function App() {
                 <div className={`rounded-2xl border p-12 text-center space-y-4 shadow-xs ${
                   isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200/70"
                 }`}>
-                  {isSyncing ? (
-                    <div className="space-y-3 py-4">
-                      <RefreshCw className="w-10 h-10 text-red-650 animate-spin mx-auto" />
-                      <p className={`text-sm font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>Connecting to active bookings ledger...</p>
+                  {isSyncing || isNetworkLowOrUnstable ? (
+                    <div className="space-y-4 py-8 max-w-md mx-auto text-center" id="unstable-network-loading">
+                      {/* Modern active loading circle & custom spinner */}
+                      <div className="relative w-12 h-12 mx-auto">
+                        <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-t-[#DC2626] border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className={`text-sm font-bold ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
+                          {isOffline 
+                            ? "Connection is Offline" 
+                            : isNetworkLowOrUnstable 
+                              ? "Synchronizing bookings over low-bandwidth link..." 
+                              : "Connecting to active bookings ledger..."}
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? "text-slate-450" : "text-slate-500"} leading-relaxed px-4`}>
+                          {isOffline 
+                            ? "Your connection seems offline. We are actively waiting for network access to sync live slots." 
+                            : simulateLowData
+                              ? "Simulated low data connection active. Retrieving ledger safely in background..."
+                              : isSlowFetchActive
+                                ? "Taking longer than usual due to slot request lag. Retrying client-side Excel backup parse..."
+                                : "Connecting using an optimized low data transmission pattern..."}
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 py-4">
+                    <div className="space-y-2 py-4" id="empty-bookings-card">
                       <CalendarDays className="w-12 h-12 text-slate-455 mx-auto" />
                       <h4 className={`font-bold text-lg ${isDarkMode ? "text-slate-200" : "text-slate-700"}`}>No active sessions listed</h4>
                       <p className={`text-sm ${isDarkMode ? "text-slate-450" : "text-slate-500"}`}>There are currently no slots reserved for today's net bookings list on disk.</p>
