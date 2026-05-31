@@ -268,16 +268,41 @@ export default function App() {
         directUrl = (import.meta.env.BASE_URL || "/") + "booking.xlsx" + `?${buster}`;
       }
 
-      let response;
-      try {
-        // Attempt direct fetch from direct download link (if CORS permits)
-        response = await fetch(directUrl);
-        if (!response.ok) throw new Error(`Dropbox direct status: ${response.status}`);
-      } catch (subErr) {
-        console.warn("Direct Dropbox fetch failed or got CORS blocked. Falling back to relative local booking.xlsx file:", subErr);
-        const relativeLocalPath = (import.meta.env.BASE_URL || "/") + "booking.xlsx" + `?${buster}`;
-        response = await fetch(relativeLocalPath);
-        if (!response.ok) throw new Error("Relative local booking.xlsx file fetch failed.");
+      let response: Response | null = null;
+      let fetchSuccessful = false;
+
+      // multi-tier fallback to bypass CORS headers and browser limitations on pure static environments (like GitHub Pages)
+      const fetchSources = [
+        // 1. Try Direct fetch (works if origin is permitted or CORS rules are relaxed)
+        directUrl,
+        // 2. Try corsproxy.io (high-performance public CORS bypass)
+        `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
+        // 3. Try api.allorigins.win raw retrieval proxy (high availability fallback)
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+        // 4. Try local relative workbook copy (failsafe baseline if offline or proxies are unreachable)
+        (import.meta.env.BASE_URL || "/") + "booking.xlsx" + `?${buster}`
+      ];
+
+      for (let i = 0; i < fetchSources.length; i++) {
+        const sourceUrl = fetchSources[i];
+        try {
+          console.log(`[CORS Bypass Client] Fetch attempt ${i + 1}/${fetchSources.length}: ${sourceUrl}`);
+          const attemptResponse = await fetch(sourceUrl);
+          if (attemptResponse.ok) {
+            response = attemptResponse;
+            fetchSuccessful = true;
+            console.log(`[CORS Bypass Client] Successfully grabbed live bookings spreadsheet using source tier ${i + 1}`);
+            break;
+          } else {
+            console.warn(`[CORS Bypass Client] Source tier ${i + 1} server returned non-ok status: ${attemptResponse.status}`);
+          }
+        } catch (fetchErr) {
+          console.warn(`[CORS Bypass Client] Source tier ${i + 1} threw request exception:`, fetchErr);
+        }
+      }
+
+      if (!fetchSuccessful || !response) {
+        throw new Error("Unable to retrieve booking ledger from direct Dropbox, CORS proxies, or relative build resources.");
       }
 
       const arrayBuffer = await response.arrayBuffer();
