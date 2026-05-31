@@ -131,6 +131,10 @@ function parseExcelData(jsonData: any[]): any[] {
 
 // Endpoints
 app.get("/api/bookings", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   const rawUrl = req.query.url as string || "https://www.dropbox.com/scl/fi/zsr8s25h7khrqiq3hegtx/Booking.xlsx?rlkey=x8r0yq1n4a61w148hz97o4tl3&st=mc1zyydf&dl=0";
 
   try {

@@ -75,7 +75,7 @@ export default function App() {
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [dropboxUrl, setDropboxUrl] = useState("https://www.dropbox.com/scl/fi/zsr8s25h7khrqiq3hegtx/Booking.xlsx?rlkey=x8r0yq1n4a61w148hz97o4tl3&st=mc1zyydf&dl=0");
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -224,9 +224,10 @@ export default function App() {
     }
 
     try {
+      const cacheBust = `_t=${Date.now()}`;
       const apiEndpoint = urlToFetch 
-        ? `/api/bookings?url=${encodeURIComponent(urlToFetch)}` 
-        : "/api/bookings";
+        ? `/api/bookings?url=${encodeURIComponent(urlToFetch)}&${cacheBust}` 
+        : `/api/bookings?${cacheBust}`;
       
       const res = await fetch(apiEndpoint);
       if (!res.ok) throw new Error("Could not fetch bookings from server.");
@@ -253,6 +254,7 @@ export default function App() {
     try {
       // Direct Dropbox direct download URL derivation
       let directUrl = urlToFetch;
+      const buster = `_t=${Date.now()}`;
       if (directUrl && directUrl.includes("dropbox.com")) {
         directUrl = directUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com");
         directUrl = directUrl.replace("://dropbox.com", "://dl.dropboxusercontent.com");
@@ -261,8 +263,9 @@ export default function App() {
         } else if (!directUrl.includes("?")) {
           directUrl += "?dl=1";
         }
+        directUrl += directUrl.includes("?") ? `&${buster}` : `?${buster}`;
       } else {
-        directUrl = (import.meta.env.BASE_URL || "/") + "booking.xlsx";
+        directUrl = (import.meta.env.BASE_URL || "/") + "booking.xlsx" + `?${buster}`;
       }
 
       let response;
@@ -272,7 +275,7 @@ export default function App() {
         if (!response.ok) throw new Error(`Dropbox direct status: ${response.status}`);
       } catch (subErr) {
         console.warn("Direct Dropbox fetch failed or got CORS blocked. Falling back to relative local booking.xlsx file:", subErr);
-        const relativeLocalPath = (import.meta.env.BASE_URL || "/") + "booking.xlsx";
+        const relativeLocalPath = (import.meta.env.BASE_URL || "/") + "booking.xlsx" + `?${buster}`;
         response = await fetch(relativeLocalPath);
         if (!response.ok) throw new Error("Relative local booking.xlsx file fetch failed.");
       }
